@@ -30,7 +30,7 @@ from __future__ import division
 
 import re
 import sys
-
+import RPi.GPIO as GPIO
 from google.cloud import speech
 from google.cloud.speech import enums
 from google.cloud.speech import types
@@ -41,8 +41,24 @@ from six.moves import queue
 # Audio recording parameters
 RATE = 16000
 CHUNK = int(RATE / 10)  # 100ms
+led_g = 33
+led_y = 36
+led_r = 35
 
-
+def set_led(R,G,Y):
+    r = GPIO.LOW
+    g = GPIO.LOW
+    y = GPIO.LOW
+    if R == 1 :
+        r = GPIO.HIGH
+    if Y == 1:
+        y = GPIO.HIGH
+    if G == 1 :
+        g = GPIO.HIGH
+    GPIO.output(led_r,r)
+    GPIO.output(led_y,y)
+    GPIO.output(led_g,g)
+    
 class MicrophoneStream(object):
     """Opens a recording stream as a generator yielding the audio chunks."""
     def __init__(self, rate, chunk):
@@ -126,6 +142,7 @@ def listen_print_loop(responses):
     final one, print a newline to preserve the finalized transcription.
     """
     print("Streaming started")
+    set_led(0,1,0)
     Final_word = ""
     num_chars_printed = 0
     for response in responses:
@@ -171,13 +188,16 @@ def listen_print_loop(responses):
             break
     print("Streaming Ended")
     return Final_word
+def init():
+    client = speech.SpeechClient()
 
-def main():
+    return client
+def main(client):
     # See http://g.co/cloud/speech/docs/languages
     # for a list of supported languages.
     language_code = 'th-TH'  # a BCP-47 language tag
     Final_word = ""
-    client = speech.SpeechClient()
+    #client = speech.SpeechClient()
     config = types.RecognitionConfig(
         encoding=enums.RecognitionConfig.AudioEncoding.LINEAR16,
         sample_rate_hertz=RATE,
@@ -185,14 +205,12 @@ def main():
     streaming_config = types.StreamingRecognitionConfig(
         config=config,
         interim_results=True)
-
     with MicrophoneStream(RATE, CHUNK) as stream:
         audio_generator = stream.generator()
         requests = (types.StreamingRecognizeRequest(audio_content=content)
                     for content in audio_generator)
 
         responses = client.streaming_recognize(streaming_config, requests)
-
         # Now, put the transcription responses to use.
         Final_word = listen_print_loop(responses)
     print("**********")

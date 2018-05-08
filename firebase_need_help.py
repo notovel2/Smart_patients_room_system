@@ -1,5 +1,6 @@
 from firebase import firebase
-
+from datetime import datetime
+from datetime import timedelta
 def init():
     print("Connecting to firebase")
     firebaseRef = firebase.FirebaseApplication('https://winnerfirebase.firebaseio.com/')
@@ -15,3 +16,11 @@ def putData(name,value):
     print("Putting data")
     result = firebaseRef.put('/need_help',name,value)
     #print(result)
+def postData(command,room):
+    firebaseRef = init()
+    print("Posting data")
+    time_now = str(datetime.now()+timedelta(days=1))
+    data = {'time': time_now,
+            'command': command}
+    #result = firebaseRef.post("/need_help",room,{'time':time_now},{'command':command},{'room':room})
+    result = firebaseRef.post("/LOG/"+room,data)
